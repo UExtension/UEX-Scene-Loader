@@ -1,0 +1,19 @@
+{
+    "name": "com.uextension.sceneloader",
+    "rootNamespace": "UExtension.SceneLoader",
+    "references": [
+        "UniTask",
+        "com.uextension.bootstrap",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Eflatun.SceneReference"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
