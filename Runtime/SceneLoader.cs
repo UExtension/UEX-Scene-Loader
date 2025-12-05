@@ -6,15 +6,13 @@ using UExtension.SceneLoader.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace UExtension.SceneLoader
 {
-    public class SceneLoader : ScriptableObject
+    public static class SceneLoader
     {
-        private static bool StaticActiveLogging { get; set; }
-
-        [field: SerializeField]
-        public bool ActiveLogging { get; set; }
+        public static bool Logging { get; set; } = true;
 
         // =========================    EVENTS    =========================
         // Individual scene events
@@ -42,13 +40,6 @@ namespace UExtension.SceneLoader
         /// </remarks>
         private static readonly Dictionary<SceneContainer, int> LoadedSceneContainers = new();
 
-        public int Priority => 1;
-
-        private void OnEnable()
-        {
-            StaticActiveLogging = ActiveLogging;
-        }
-
         /// <summary>
         /// Initializes and sets up event listeners for Unity's scene management events,
         /// and automatically loads scene groups marked for loading on application start.
@@ -60,7 +51,7 @@ namespace UExtension.SceneLoader
             SceneManager.sceneUnloaded += HandleUnitySceneUnloaded;
             SceneManager.activeSceneChanged += HandleActiveSceneChanged;
 
-            if (StaticActiveLogging)
+            if (Logging)
             {
                 Debug.Log($"Initializing {nameof(SceneLoader)}...");
             }
@@ -69,7 +60,7 @@ namespace UExtension.SceneLoader
 
             foreach (var container in RegisteredSceneContainers)
             {
-                if (StaticActiveLogging)
+                if (Logging)
                 {
                     Debug.Log($"Registering {nameof(SceneContainer)} {container.Name}:{container.BuildIndex}");
                 }
@@ -275,7 +266,7 @@ namespace UExtension.SceneLoader
         private static async UniTask CheckInternalSceneProgression(List<SceneContainer> scenesToLoad)
         {
             var scenes = scenesToLoad.Select(container => container.Scene).ToList();
-            var progressions = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+            var progressions = Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                 .OfType<ISceneLoadProgression>()
                 .ToList();
 
@@ -295,7 +286,7 @@ namespace UExtension.SceneLoader
 
         private static void HandleActiveSceneChanged(Scene replacedScene, Scene activeScene)
         {
-            if (StaticActiveLogging)
+            if (Logging)
             {
                 Debug.Log($"Active {nameof(Scene)} changed {replacedScene.name} => {activeScene.name}");
             }
@@ -303,7 +294,7 @@ namespace UExtension.SceneLoader
 
         private static void HandleUnitySceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (StaticActiveLogging)
+            if (Logging)
             {
                 Debug.Log($"{nameof(Scene)} {scene.name} loaded");
             }
@@ -331,7 +322,7 @@ namespace UExtension.SceneLoader
 
         private static void HandleUnitySceneUnloaded(Scene scene)
         {
-            if (StaticActiveLogging)
+            if (Logging)
             {
                 Debug.Log($"{nameof(Scene)} {scene.name} unloaded");
             }
