@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using UExtension.Bootstrap;
 using UExtension.SceneLoader.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -10,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace UExtension.SceneLoader
 {
-    public class SceneLoader : ScriptableObject, IBootstrapService
+    public class SceneLoader : ScriptableObject
     {
         private static bool StaticActiveLogging { get; set; }
 
@@ -23,8 +22,6 @@ namespace UExtension.SceneLoader
         public static event Action<SceneContainer> OnSceneUnloaded = delegate { };
 
         // Group scene events
-        public static event Action<List<SceneContainer>> OnGroupSceneLoaded = delegate { };
-        public static event Action<List<SceneContainer>> OnGroupSceneUnloaded = delegate { };
         public static readonly List<IBeforeSceneUnLoad> BeforeGroupSceneUnLoads = new();
         public static readonly List<IAfterSceneUnLoad> AfterGroupSceneUnLoads = new();
         public static readonly List<IBeforeSceneLoad> BeforeGroupSceneLoads = new();
@@ -47,12 +44,9 @@ namespace UExtension.SceneLoader
 
         public int Priority => 1;
 
-        public void Bootstrap()
+        private void OnEnable()
         {
             StaticActiveLogging = ActiveLogging;
-            SceneManager.sceneLoaded += HandleUnitySceneLoaded;
-            SceneManager.sceneUnloaded += HandleUnitySceneUnloaded;
-            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
         }
 
         /// <summary>
@@ -62,6 +56,10 @@ namespace UExtension.SceneLoader
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Init()
         {
+            SceneManager.sceneLoaded += HandleUnitySceneLoaded;
+            SceneManager.sceneUnloaded += HandleUnitySceneUnloaded;
+            SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+
             if (StaticActiveLogging)
             {
                 Debug.Log($"Initializing {nameof(SceneLoader)}...");
@@ -153,7 +151,6 @@ namespace UExtension.SceneLoader
 
             await CheckInternalSceneProgression(scenesToLoad);
 
-            OnGroupSceneLoaded.Invoke(scenesToLoad);
             await UniTask.WhenAll(AfterGroupSceneLoads.Select(action => action.DoAfterSceneLoad(scenesToLoad)));
         }
 
@@ -171,7 +168,6 @@ namespace UExtension.SceneLoader
 
             Resources.UnloadUnusedAssets();
 
-            OnGroupSceneUnloaded.Invoke(scenesToUnload);
             await UniTask.WhenAll(AfterGroupSceneUnLoads.Select(action => action.DoAfterSceneUnLoad(scenesToUnload)));
         }
 
@@ -297,17 +293,17 @@ namespace UExtension.SceneLoader
         #endregion
 
 
-        private void HandleActiveSceneChanged(Scene replacedScene, Scene activeScene)
+        private static void HandleActiveSceneChanged(Scene replacedScene, Scene activeScene)
         {
-            if (ActiveLogging)
+            if (StaticActiveLogging)
             {
                 Debug.Log($"Active {nameof(Scene)} changed {replacedScene.name} => {activeScene.name}");
             }
         }
 
-        private void HandleUnitySceneLoaded(Scene scene, LoadSceneMode mode)
+        private static void HandleUnitySceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (ActiveLogging)
+            if (StaticActiveLogging)
             {
                 Debug.Log($"{nameof(Scene)} {scene.name} loaded");
             }
@@ -333,9 +329,9 @@ namespace UExtension.SceneLoader
             }
         }
 
-        private void HandleUnitySceneUnloaded(Scene scene)
+        private static void HandleUnitySceneUnloaded(Scene scene)
         {
-            if (ActiveLogging)
+            if (StaticActiveLogging)
             {
                 Debug.Log($"{nameof(Scene)} {scene.name} unloaded");
             }
