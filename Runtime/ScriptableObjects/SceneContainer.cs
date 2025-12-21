@@ -19,8 +19,11 @@ namespace UExtension.SceneLoader.ScriptableObjects
         public bool DontDestroyOnUnload { get; internal set; }
 
         public string Name => Reference.Name;
+        public string Path => Reference.Path;
         public int BuildIndex => Reference.BuildIndex;
         public Scene Scene => Reference.LoadedScene;
+
+        public bool IsReady => Reference.State == SceneReferenceState.Regular;
 
         public void Bootstrap()
         {
@@ -45,7 +48,7 @@ namespace UExtension.SceneLoader.ScriptableObjects
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ BuildIndex.GetHashCode();
+                return (base.GetHashCode() * 397) ^ (IsReady ? BuildIndex.GetHashCode() : 0);
             }
         }
     }
