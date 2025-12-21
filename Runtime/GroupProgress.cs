@@ -20,7 +20,7 @@ namespace UExtension.SceneLoader
         public void Report(AsyncOperation operation)
         {
             Operations.Add(operation);
-            _onProgress.Report(CalculateGroupProgress());
+            _onProgress?.Report(CalculateGroupProgress());
         }
 
         private float CalculateGroupProgress()
