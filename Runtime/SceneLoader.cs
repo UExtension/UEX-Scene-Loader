@@ -211,7 +211,7 @@ namespace UExtension.SceneLoader
         {
             if (!LoadedSceneContainers.ContainsKey(container))
             {
-                Debug.LogError($"Scene: {container.Name} is not loaded. Cannot set as active scene.");
+                Debug.LogError($"SceneContainer: {container.Name} is not loaded. Cannot set as active scene container.");
                 return false;
             }
 
