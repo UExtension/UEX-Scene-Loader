@@ -1,0 +1,33 @@
+.searchable-scenes-list-view__search-field {
+    border-bottom-color: var(--unity-colors-label-text);
+    border-bottom-width: 2px;
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+}
+
+.scene-container {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    align-items: center;
+}
+
+.scene-container Label {
+    -unity-font-style: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+}
+
+.scene-container VisualElement {
+    flex-shrink: 0;
+}
+
+.scene-container__buttons {
+    flex-direction: row;
+}

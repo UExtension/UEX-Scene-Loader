@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 namespace UExtension.SceneLoader.Editor.UI.Views
 {
     [UxmlElement]
-    public partial class SearchableScenesListView : VisualElement, IUExtensionTabFactory
+    public partial class SearchableScenesListView : VisualElement
     {
         private readonly ScenesListView listView;
         private readonly List<SceneContainer> routeFactories = new();

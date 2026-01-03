@@ -7,7 +7,7 @@ namespace UExtension.SceneLoader.Editor
 {
     public static class SceneLoaderEditor
     {
-        [MenuItem("UExtension/SceneLoader/Toggle Logging")]
+        [MenuItem("UExtension/Scene Loader/Toggle Logging")]
         public static void ToggleLogging()
         {
             var asset = AssetDatabase

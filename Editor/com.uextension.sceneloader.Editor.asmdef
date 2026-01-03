@@ -1,5 +1,5 @@
 {
-  "name": "com.UExtension.sceneloader.Editor",
+  "name": "com.uextension.sceneloader.Editor",
   "rootNamespace": "UExtension.SceneLoader.Editor",
   "references": [
     "com.uextension.bootstrap",
