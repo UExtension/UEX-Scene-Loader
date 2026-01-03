@@ -1,18 +1,20 @@
 {
-    "name": "com.UExtension.sceneloader.Editor",
-    "rootNamespace": "UExtension.SceneLoader.Editor",
-    "references": [
-        "com.uextension.sceneloader"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "com.UExtension.sceneloader.Editor",
+  "rootNamespace": "UExtension.SceneLoader.Editor",
+  "references": [
+    "com.uextension.bootstrap",
+    "com.uextension.sceneloader",
+    "com.uextension.bootstrap.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
