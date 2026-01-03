@@ -3,9 +3,9 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace UExtension.SceneLoader.Editor.UI
+namespace UExtension.SceneLoader.Editor.UI.Windows
 {
-    public class SceneLoaderEditorWindow : EditorWindow, IUExtensionTabFactory
+    public class SceneLoaderEditorWindow : EditorWindow, IUExtensionEditorWindow
     {
         [field: SerializeField] public VisualTreeAsset VisualTreeAsset { get; private set; }
         public string Name => "Scene Loader";
