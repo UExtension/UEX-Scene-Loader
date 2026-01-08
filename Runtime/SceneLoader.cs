@@ -16,8 +16,8 @@ namespace UExtension.SceneLoader
 
         // =========================    EVENTS    =========================
         // Individual scene events
-        public static event Action<SceneContainer> OnSceneLoaded = delegate { };
-        public static event Action<SceneContainer> OnSceneUnloaded = delegate { };
+        public static event Action<SceneContainer> OnSceneLoaded = delegate {};
+        public static event Action<SceneContainer> OnSceneUnloaded = delegate {};
 
         // Group scene events
         public static readonly List<IBeforeSceneUnLoad> BeforeGroupSceneUnLoads = new();
@@ -80,6 +80,12 @@ namespace UExtension.SceneLoader
         /// <param name="container">The scene container to be registered.</param>
         public static void RegisterSceneContainer(SceneContainer container)
         {
+            if (!container.IsReady)
+            {
+                Debug.LogError($"Cannot register {nameof(SceneContainer)} {container.name}. Scene reference undefined.");
+                return;
+            }
+
             RegisteredSceneContainers.Add(container);
             BuildIndexSceneContainers[container.BuildIndex] = container;
         }
