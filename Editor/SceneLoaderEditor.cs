@@ -20,7 +20,23 @@ namespace UExtension.SceneLoader.Editor
             EditorUtility.SetDirty(asset);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"{nameof(SceneLoader)} Logging: {(SceneLoader.Logging ? "ON" : "OFF")}");
+            Debug.Log($"{nameof(SceneLoader)} Logging: {(asset.Logging ? "ON" : "OFF")}");
+        }
+        
+        [MenuItem("UExtension/Scene Loader/Toggle LoadOnApplicationStart")]
+        public static void ToggleLoadOnApplicationStart()
+        {
+            var asset = AssetDatabase
+                .FindAssets($"t:{nameof(SceneLoaderActions)}")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<SceneLoaderActions>)
+                .Single();
+
+            asset.SetEnableLoadOnApplicationStart(!asset.EnableLoadOnApplicationStart);
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"{nameof(SceneLoader)} LoadOnApplicationStart: {(asset.EnableLoadOnApplicationStart ? "ON" : "OFF")}");
         }
     }
 }

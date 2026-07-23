@@ -13,6 +13,7 @@ namespace UExtension.SceneLoader
     public static class SceneLoader
     {
         public static bool Logging { get; set; } = true;
+        public static bool EnableLoadOnApplicationStart { get; set; } = true;
 
         // =========================    EVENTS    =========================
         // Individual scene events
@@ -57,6 +58,8 @@ namespace UExtension.SceneLoader
             }
 
             var firstScene = SceneManager.GetActiveScene();
+
+            if (!EnableLoadOnApplicationStart) return;
 
             foreach (var container in RegisteredSceneContainers)
             {

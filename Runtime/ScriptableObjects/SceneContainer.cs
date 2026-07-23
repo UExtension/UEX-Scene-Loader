@@ -10,7 +10,7 @@ namespace UExtension.SceneLoader.ScriptableObjects
     public class SceneContainer : ScriptableObject, IEquatable<SceneContainer>, IBootstrapService
     {
         [field: SerializeField]
-        private SceneReference Reference { get; set; }
+        public SceneReference Reference { get; set; }
 
         [field: SerializeField]
         public bool LoadOnApplicationStart { get; private set; }
