@@ -52,10 +52,7 @@ namespace UExtension.SceneLoader
             SceneManager.sceneUnloaded += HandleUnitySceneUnloaded;
             SceneManager.activeSceneChanged += HandleActiveSceneChanged;
 
-            if (Logging)
-            {
-                Debug.Log($"Initializing {nameof(SceneLoader)}...");
-            }
+            if (Logging) Debug.Log($"Initializing {nameof(SceneLoader)}...");
 
             var firstScene = SceneManager.GetActiveScene();
 
@@ -63,10 +60,7 @@ namespace UExtension.SceneLoader
 
             foreach (var container in RegisteredSceneContainers)
             {
-                if (Logging)
-                {
-                    Debug.Log($"Registering {nameof(SceneContainer)} {container.Name}:{container.BuildIndex}");
-                }
+                if (Logging) Debug.Log($"Registering {nameof(SceneContainer)} {container.Name}:{container.BuildIndex}");
 
                 if (container.LoadOnApplicationStart)
                 {
@@ -158,6 +152,7 @@ namespace UExtension.SceneLoader
         /// Unloads scenes asynchronously and manages the associated lifecycle events.
         /// </summary>
         /// <param name="scenesToUnload">A list of <see cref="SceneContainer"/> to unload.</param>
+        /// <param name="progress">The scene loading progress</param>
         /// <returns>A task representing the asynchronous operation of unloading scenes.</returns>
         private static async UniTask UnloadScenes(List<SceneContainer> scenesToUnload, IProgress<float> progress = null)
         {
@@ -175,19 +170,20 @@ namespace UExtension.SceneLoader
         /// Loads a scene asynchronously and manages the associated lifecycle events.
         /// </summary>
         /// <param name="sceneContainer">The <see cref="SceneContainer"/> object containing details about the scene to load.</param>
+        /// <param name="progress">The scene loading progress</param>
         /// <returns>An <see cref="AsyncOperation"/> representing the asynchronous loading operation of the scene.</returns>
-        private static UniTask LoadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null)
+        private static async UniTask LoadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null)
         {
             var operation = SceneManager.LoadSceneAsync(sceneContainer.BuildIndex, LoadSceneMode.Additive);
-            return progress == null
-                ? operation.ToUniTask()
-                : operation.ToUniTask(progress: Progress.CreateOnlyValueChanged<float>(_ => progress.Report(operation)));
+            await operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress?.Report(operation)));
+            await UniTask.WaitUntil(() => LoadedSceneContainers.ContainsKey(sceneContainer));
         }
 
         /// <summary>
         /// Unloads a scene asynchronously and manages the associated lifecycle events.
         /// </summary>
         /// <param name="sceneContainer">The <see cref="SceneContainer"/> instance to unload.</param>
+        /// <param name="progress">The scene loading progress</param>
         /// <returns>An <see cref="AsyncOperation"/> representing the asynchronous unloading operation of the scene.</returns>
         private static UniTask UnloadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null)
         {
@@ -202,19 +198,14 @@ namespace UExtension.SceneLoader
             if (sceneContainer.DontDestroyOnUnload) return UniTask.CompletedTask;
 
             var operation = SceneManager.UnloadSceneAsync(sceneContainer.BuildIndex);
-            return progress == null
-                ? operation.ToUniTask()
-                : operation.ToUniTask(progress: Progress.CreateOnlyValueChanged<float>(_ => progress.Report(operation)));
+            return progress == null ? operation.ToUniTask() : operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress.Report(operation)));
         }
 
         #endregion
 
         #region Accessors
 
-        public static Scene GetActiveScene()
-        {
-            return SceneManager.GetActiveScene();
-        }
+        public static Scene GetActiveScene() => SceneManager.GetActiveScene();
 
         public static bool SetActiveScene(SceneContainer container)
         {
@@ -227,15 +218,9 @@ namespace UExtension.SceneLoader
             return SetActiveScene(container.Scene);
         }
 
-        public static bool SetActiveScene(Scene scene)
-        {
-            return SceneManager.SetActiveScene(scene);
-        }
+        public static bool SetActiveScene(Scene scene) => SceneManager.SetActiveScene(scene);
 
-        public static void SetBakingSet(SceneContainer container)
-        {
-            SetBakingSet(container.Scene);
-        }
+        public static void SetBakingSet(SceneContainer container) => SetBakingSet(container.Scene);
 
         public static void SetBakingSet(Scene scene)
         {
@@ -244,36 +229,24 @@ namespace UExtension.SceneLoader
 #endif
         }
 
-        public static HashSet<Scene> GetLoadedScenes()
-        {
-            return new HashSet<Scene>(LoadedScenes);
-        }
+        public static HashSet<Scene> GetLoadedScenes() => new(LoadedScenes);
 
         /// <summary>
         /// A dictionary that maintains a collection of loaded <see cref="SceneContainer"/> instances
         /// and their respective load counts within the scene loading system.
         /// </summary>
-        public static Dictionary<SceneContainer, int> GetLoadedSceneContainers()
-        {
-            return new Dictionary<SceneContainer, int>(LoadedSceneContainers);
-        }
+        public static Dictionary<SceneContainer, int> GetLoadedSceneContainers() => new(LoadedSceneContainers);
 
         #endregion
 
         #region Utils
 
-        public static bool TryGetSceneContainer(Scene scene, out SceneContainer sceneContainer)
-        {
-            return BuildIndexSceneContainers.TryGetValue(scene.buildIndex, out sceneContainer);
-        }
+        public static bool TryGetSceneContainer(Scene scene, out SceneContainer sceneContainer) => BuildIndexSceneContainers.TryGetValue(scene.buildIndex, out sceneContainer);
 
         private static List<T> RemoveAll<T>(ICollection<T> list, ICollection<T> toRemove)
         {
             var result = new List<T>(list);
-            foreach (var element in toRemove)
-            {
-                result.Remove(element);
-            }
+            foreach (var element in toRemove) result.Remove(element);
 
             return result;
         }
@@ -281,9 +254,7 @@ namespace UExtension.SceneLoader
         private static async UniTask CheckInternalSceneProgression(List<SceneContainer> scenesToLoad)
         {
             var scenes = scenesToLoad.Select(container => container.Scene).ToList();
-            var progressions = Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .OfType<ISceneLoadProgression>()
-                .ToList();
+            var progressions = Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).OfType<ISceneLoadProgression>().ToList();
 
             // Wait for all progressions to reach 1
             await UniTask.WaitWhile(() => progressions.Any(NotReady));
@@ -301,46 +272,30 @@ namespace UExtension.SceneLoader
 
         private static void HandleActiveSceneChanged(Scene replacedScene, Scene activeScene)
         {
-            if (Logging)
-            {
-                Debug.Log($"Active {nameof(Scene)} changed {replacedScene.name} => {activeScene.name}");
-            }
+            if (Logging) Debug.Log($"Active {nameof(Scene)} changed {replacedScene.name} => {activeScene.name}");
         }
 
         private static void HandleUnitySceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (Logging)
-            {
-                Debug.Log($"{nameof(Scene)} {scene.name} loaded");
-            }
+            if (Logging) Debug.Log($"{nameof(Scene)} {scene.name} loaded");
 
             LoadedScenes.Add(scene);
 
             if (TryGetSceneContainer(scene, out var sceneContainer))
             {
                 if (LoadedSceneContainers.TryGetValue(sceneContainer, out var count))
-                {
                     LoadedSceneContainers[sceneContainer] = count + 1;
-                }
                 else
-                {
                     LoadedSceneContainers.Add(sceneContainer, 1);
-                }
 
                 OnSceneLoaded.Invoke(sceneContainer);
             }
-            else
-            {
-                Debug.LogWarning($"Scene: {scene.name} has no {nameof(SceneContainer)} registered.");
-            }
+            else { Debug.LogWarning($"Scene: {scene.name} has no {nameof(SceneContainer)} registered."); }
         }
 
         private static void HandleUnitySceneUnloaded(Scene scene)
         {
-            if (Logging)
-            {
-                Debug.Log($"{nameof(Scene)} {scene.name} unloaded");
-            }
+            if (Logging) Debug.Log($"{nameof(Scene)} {scene.name} unloaded");
 
             LoadedScenes.Remove(scene);
 
@@ -348,16 +303,15 @@ namespace UExtension.SceneLoader
             {
                 if (LoadedSceneContainers.TryGetValue(sceneContainer, out var count))
                 {
-                    if (count == 1) LoadedSceneContainers.Remove(sceneContainer);
-                    else LoadedSceneContainers[sceneContainer] = count - 1;
+                    if (count == 1)
+                        LoadedSceneContainers.Remove(sceneContainer);
+                    else
+                        LoadedSceneContainers[sceneContainer] = count - 1;
                 }
 
                 OnSceneUnloaded.Invoke(sceneContainer);
             }
-            else
-            {
-                Debug.LogWarning($"Scene: {scene.name} has no {nameof(SceneContainer)} registered.");
-            }
+            else { Debug.LogWarning($"Scene: {scene.name} has no {nameof(SceneContainer)} registered."); }
         }
     }
 }
