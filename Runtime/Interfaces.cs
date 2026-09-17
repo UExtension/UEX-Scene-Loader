@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UExtension.SceneLoader.ScriptableObjects;
 
@@ -6,26 +7,26 @@ namespace UExtension.SceneLoader
 {
     public interface IBeforeSceneUnLoad
     {
-        public UniTask DoBeforeSceneUnLoad(List<SceneContainer> scenesToUnload);
+        UniTask DoBeforeSceneUnLoad(List<SceneContainer> scenesToUnload, CancellationToken token = default);
     }
 
     public interface IAfterSceneUnLoad
     {
-        public UniTask DoAfterSceneUnLoad(List<SceneContainer> scenesUnloaded);
+        UniTask DoAfterSceneUnLoad(List<SceneContainer> scenesUnloaded, CancellationToken token = default);
     }
 
     public interface IBeforeSceneLoad
     {
-        public UniTask DoBeforeSceneLoad(List<SceneContainer> scenesToLoad);
+        UniTask DoBeforeSceneLoad(List<SceneContainer> scenesToLoad, CancellationToken token = default);
     }
 
     public interface IAfterSceneLoad
     {
-        public UniTask DoAfterSceneLoad(List<SceneContainer> scenesLoaded);
+        UniTask DoAfterSceneLoad(List<SceneContainer> scenesLoaded, CancellationToken token = default);
     }
 
     public interface ISceneLoadProgression
     {
-        public float Progress();
+        float Progress();
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UExtension.SceneLoader.ScriptableObjects;
 using UnityEngine;
@@ -8,7 +9,8 @@ namespace UExtension.SceneLoader.Components
 {
     public class SceneLoaderEvents : MonoBehaviour, IBeforeSceneLoad, IAfterSceneLoad, IBeforeSceneUnLoad, IAfterSceneUnLoad
     {
-        [field: SerializeField, Header("Events")]
+        [field: SerializeField]
+        [field: Header("Events")]
         public UnityEvent<SceneContainer> OnSceneLoaded { get; private set; } = new();
 
         [field: SerializeField]
@@ -46,35 +48,29 @@ namespace UExtension.SceneLoader.Components
             SceneLoader.AfterGroupSceneUnLoads.Remove(this);
         }
 
-        private void HandleSceneLoaded(SceneContainer sceneContainer)
-        {
-            OnSceneLoaded.Invoke(sceneContainer);
-        }
+        private void HandleSceneLoaded(SceneContainer sceneContainer) => OnSceneLoaded.Invoke(sceneContainer);
 
-        private void HandleSceneUnloaded(SceneContainer sceneContainer)
-        {
-            OnSceneUnloaded.Invoke(sceneContainer);
-        }
+        private void HandleSceneUnloaded(SceneContainer sceneContainer) => OnSceneUnloaded.Invoke(sceneContainer);
 
-        public UniTask DoBeforeSceneLoad(List<SceneContainer> scenesToLoad)
+        public UniTask DoBeforeSceneLoad(List<SceneContainer> scenesToLoad, CancellationToken cancellationToken)
         {
             OnBeforeGroupSceneLoaded.Invoke(scenesToLoad);
             return UniTask.CompletedTask;
         }
 
-        public UniTask DoAfterSceneLoad(List<SceneContainer> scenesLoaded)
+        public UniTask DoAfterSceneLoad(List<SceneContainer> scenesLoaded, CancellationToken cancellationToken)
         {
             OnAfterGroupSceneLoaded.Invoke(scenesLoaded);
             return UniTask.CompletedTask;
         }
 
-        public UniTask DoBeforeSceneUnLoad(List<SceneContainer> scenesToUnload)
+        public UniTask DoBeforeSceneUnLoad(List<SceneContainer> scenesToUnload, CancellationToken cancellationToken)
         {
             OnBeforeGroupSceneUnloaded.Invoke(scenesToUnload);
             return UniTask.CompletedTask;
         }
 
-        public UniTask DoAfterSceneUnLoad(List<SceneContainer> scenesUnloaded)
+        public UniTask DoAfterSceneUnLoad(List<SceneContainer> scenesUnloaded, CancellationToken cancellationToken)
         {
             OnAfterGroupSceneUnloaded.Invoke(scenesUnloaded);
             return UniTask.CompletedTask;
