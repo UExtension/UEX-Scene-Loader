@@ -42,6 +42,8 @@ namespace UExtension.SceneLoader
         /// </remarks>
         private static readonly Dictionary<SceneContainer, int> LoadedSceneContainers = new();
 
+        private static readonly SemaphoreSlim SetActiveLock = new(1, 1);
+
         /// <summary>
         /// Initializes and sets up event listeners for Unity's scene management events,
         /// and automatically loads scene groups marked for loading on application start.
@@ -105,32 +107,39 @@ namespace UExtension.SceneLoader
         /// </summary>
         /// <param name="scenesToLoad">A list of <see cref="SceneContainer"/> to load.</param>
         /// <returns>A task representing the asynchronous operation of loading scenes.</returns>
+        /// <remarks>Calls run one at a time: each diffs against the scenes the previous one left loaded.</remarks>
         public static async UniTask SetActiveSceneContainers(ICollection<SceneContainer> scenesToLoad, IProgress<float> loadProgress = null, IProgress<float> unloadProgress = null,
                                                              CancellationToken cancellationToken = default)
         {
-            // FilteredSceneToLoad = SceneToLoad - LoadedScenes
-            var filteredScenesToLoad = RemoveAll(scenesToLoad, LoadedSceneContainers.Keys.ToList());
+            await SetActiveLock.WaitAsync(cancellationToken);
 
-            if (filteredScenesToLoad.Count > 0)
+            try
             {
-                // Load group's scenes
-                await LoadScenes(filteredScenesToLoad, loadProgress, cancellationToken);
+                // FilteredSceneToLoad = SceneToLoad - LoadedScenes
+                var filteredScenesToLoad = RemoveAll(scenesToLoad, LoadedSceneContainers.Keys.ToList());
 
-                // Wait for next frame to complete scene loading
-                await UniTask.NextFrame(cancellationToken);
+                if (filteredScenesToLoad.Count > 0)
+                {
+                    // Load group's scenes
+                    await LoadScenes(filteredScenesToLoad, loadProgress, cancellationToken);
+
+                    // Wait for next frame to complete scene loading
+                    await UniTask.NextFrame(cancellationToken);
+                }
+
+                // FilteredSceneToUnload = LoadedScenes - ScenesToLoad
+                var filteredScenesToUnload = RemoveAll(LoadedSceneContainers.Keys.ToList(), scenesToLoad);
+
+                if (filteredScenesToUnload.Count > 0)
+                {
+                    // Unload unused scenes
+                    await UnloadScenes(filteredScenesToUnload, unloadProgress, cancellationToken);
+
+                    // Wait for next frame to complete scene unloading
+                    await UniTask.NextFrame(cancellationToken);
+                }
             }
-
-            // FilteredSceneToUnload = LoadedScenes - ScenesToLoad
-            var filteredScenesToUnload = RemoveAll(LoadedSceneContainers.Keys.ToList(), scenesToLoad);
-
-            if (filteredScenesToUnload.Count > 0)
-            {
-                // Unload unused scenes
-                await UnloadScenes(filteredScenesToUnload, unloadProgress, cancellationToken);
-
-                // Wait for next frame to complete scene unloading
-                await UniTask.NextFrame(cancellationToken);
-            }
+            finally { SetActiveLock.Release(); }
         }
 
         /// <summary>
@@ -143,7 +152,7 @@ namespace UExtension.SceneLoader
             await UniTask.WhenAll(BeforeGroupSceneLoads.Select(action => action.DoBeforeSceneLoad(scenesToLoad, cancellationToken)));
 
             var operationGroup = new GroupProgress(scenesToLoad.Count, progress);
-            await UniTask.WhenAll(scenesToLoad.Select(s => LoadScene(s, operationGroup, cancellationToken)));
+            await UniTask.WhenAll(scenesToLoad.Select(s => LoadScene(s, operationGroup)));
 
             await CheckInternalSceneProgression(scenesToLoad);
 
@@ -161,7 +170,7 @@ namespace UExtension.SceneLoader
             await UniTask.WhenAll(BeforeGroupSceneUnLoads.Select(action => action.DoBeforeSceneUnLoad(scenesToUnload, cancellationToken)));
 
             var operationGroup = new GroupProgress(scenesToUnload.Count, progress);
-            await UniTask.WhenAll(scenesToUnload.Select(s => UnloadScene(s, operationGroup, cancellationToken)));
+            await UniTask.WhenAll(scenesToUnload.Select(s => UnloadScene(s, operationGroup)));
 
             Resources.UnloadUnusedAssets();
 
@@ -174,11 +183,12 @@ namespace UExtension.SceneLoader
         /// <param name="sceneContainer">The <see cref="SceneContainer"/> object containing details about the scene to load.</param>
         /// <param name="progress">The scene loading progress</param>
         /// <returns>An <see cref="AsyncOperation"/> representing the asynchronous loading operation of the scene.</returns>
-        private static async UniTask LoadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null, CancellationToken cancellationToken = default)
+        /// <remarks>Not cancellable: Unity completes a started load anyway, and the next call must see it loaded.</remarks>
+        private static async UniTask LoadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null)
         {
             var operation = SceneManager.LoadSceneAsync(sceneContainer.BuildIndex, LoadSceneMode.Additive);
-            await operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress?.Report(operation)), cancellationToken: cancellationToken);
-            await UniTask.WaitUntil(() => LoadedSceneContainers.ContainsKey(sceneContainer), cancellationToken: cancellationToken);
+            await operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress?.Report(operation)));
+            await UniTask.WaitUntil(() => LoadedSceneContainers.ContainsKey(sceneContainer));
         }
 
         /// <summary>
@@ -187,7 +197,8 @@ namespace UExtension.SceneLoader
         /// <param name="sceneContainer">The <see cref="SceneContainer"/> instance to unload.</param>
         /// <param name="progress">The scene loading progress</param>
         /// <returns>An <see cref="AsyncOperation"/> representing the asynchronous unloading operation of the scene.</returns>
-        private static UniTask UnloadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null, CancellationToken cancellationToken = default)
+        /// <remarks>Not cancellable: Unity completes a started unload anyway, and the next call must see it unloaded.</remarks>
+        private static UniTask UnloadScene(SceneContainer sceneContainer, IProgress<AsyncOperation> progress = null)
         {
             // Skip if only one scene is loaded
             if (LoadedScenes.Count <= 1)
@@ -201,8 +212,8 @@ namespace UExtension.SceneLoader
 
             var operation = SceneManager.UnloadSceneAsync(sceneContainer.BuildIndex);
             return progress == null
-                ? operation.ToUniTask(cancellationToken: cancellationToken)
-                : operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress.Report(operation)), cancellationToken: cancellationToken);
+                ? operation.ToUniTask()
+                : operation.ToUniTask(Progress.CreateOnlyValueChanged<float>(_ => progress.Report(operation)));
         }
 
         #endregion
